@@ -1,0 +1,150 @@
+const canvas = document.getElementById('gridCanvas');
+const ctx = canvas.getContext('2d');
+const message = document.getElementById('message');
+const resetButton = document.getElementById('resetButton');
+
+const rows = 3;
+const cols = 3;
+const width = canvas.width;
+const height = canvas.height;
+const cellWidth = width / cols;
+const cellHeight = height / rows;
+
+let board;
+let currentPlayer;
+let gameEnded = false;
+
+function initGame() {
+  board = Array.from(Array(rows), () => Array(cols).fill(null));
+  currentPlayer = 'O';
+  gameEnded = false;
+  message.textContent = '';
+  resetButton.style.display = 'none';
+  ctx.clearRect(0, 0, width, height);
+  drawGrid();
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 2; 
+  for (let i = 1; i < cols; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * cellWidth, 0);
+    ctx.lineTo(i * cellWidth, height);
+    ctx.stroke();
+  }
+  for (let i = 1; i < rows; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, i * cellHeight);
+    ctx.lineTo(width, i * cellHeight);
+    ctx.stroke();
+  }
+}
+
+function drawCircle(row, col) {
+  const centerX = col * cellWidth + cellWidth / 2;
+  const centerY = row * cellHeight + cellHeight / 2;
+  const radius = Math.min(cellWidth, cellHeight) / 4;
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawCross(row, col) {
+  const padding = 20;
+  const x1 = col * cellWidth + padding;
+  const y1 = row * cellHeight + padding;
+  const x2 = (col + 1) * cellWidth - padding;
+  const y2 = (row + 1) * cellHeight - padding;
+
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x2, y1);
+  ctx.lineTo(x1, y2);
+  ctx.stroke();
+}
+
+function checkWinner() {
+  const lines = [
+    // 横
+    [[0, 0], [0, 1], [0, 2]],
+    [[1, 0], [1, 1], [1, 2]],
+    [[2, 0], [2, 1], [2, 2]],
+    // 縦
+    [[0, 0], [1, 0], [2, 0]],
+    [[0, 1], [1, 1], [2, 1]],
+    [[0, 2], [1, 2], [2, 2]],
+    // 斜め
+    [[0, 0], [1, 1], [2, 2]],
+    [[0, 2], [1, 1], [2, 0]],
+  ];
+
+  for (let line of lines) {
+    const [a, b, c] = line;
+    const val = board[a[0]][a[1]];
+    if (val && val === board[b[0]][b[1]] && val === board[c[0]][c[1]]) {
+      return val;
+    }
+  }
+
+  return null;
+}
+
+function isBoardFull() {
+  return board.flat().every(cell => cell !== null);
+}
+
+canvas.addEventListener('click', (e) => {
+  if (gameEnded) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const col = Math.floor(x / cellWidth);
+  const row = Math.floor(y / cellHeight);
+
+  if (!board[row][col]) {
+    board[row][col] = currentPlayer;
+
+    if (currentPlayer === 'O') {
+      drawCircle(row, col);
+    } else {
+      drawCross(row, col);
+    }
+
+    const winner = checkWinner();
+    if (winner) {
+      const winnerSymbol = winner === 'O' ? '〇' : '×';
+      message.textContent = `${winnerSymbol} の勝ち！`;
+      gameEnded = true;
+      resetButton.style.display = 'block';
+      return;
+    }
+
+
+    if (isBoardFull()) {
+      message.textContent = '引き分け！';
+      gameEnded = true;
+      resetButton.style.display = 'block';
+      return;
+    }
+
+    currentPlayer = currentPlayer === 'O' ? 'X' : 'O';
+  }
+});
+
+resetButton.addEventListener('click', initGame);
+
+// 初期化
+initGame();
